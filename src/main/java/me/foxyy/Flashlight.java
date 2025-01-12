@@ -4,8 +4,11 @@ import me.foxyy.commands.*;
 import me.foxyy.events.EventListener;
 import me.foxyy.tasks.UpdateLightTask;
 import org.bukkit.configuration.file.FileConfiguration;
+import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Objects;
 
 public class Flashlight extends JavaPlugin {
@@ -16,6 +19,8 @@ public class Flashlight extends JavaPlugin {
     public static Flashlight getInstance() {
         return instance;
     }
+
+    public Map<Player, Boolean> flashlightState = new HashMap<>();
 
     @Override
     public void onEnable() {
@@ -29,19 +34,21 @@ public class Flashlight extends JavaPlugin {
 
         // register commands
         registerCommands();
+
+        // register tasks
+        registerTasks();
+
+        // register all online users
+        for (Player player : getServer().getOnlinePlayers()) {
+            flashlightState.put(player, false);
+        }
     }
 
     @Override
     public void onDisable() {
         this.getServer().getScheduler().cancelTasks(this);
-    }
-
-    public void reload() {
-        this.getLogger().info("Reloading the plugin...");
-        this.getServer().getScheduler().cancelTasks(this);
-        this.reloadConfig();
-        this.registerTasks();
-        this.getLogger().info("Plugin reloaded.");
+        UpdateLightTask.clear();
+        flashlightState.clear();
     }
 
     public FileConfiguration getMainConfig() {
@@ -49,19 +56,20 @@ public class Flashlight extends JavaPlugin {
     }
 
     private void loadConfig() {
-        config.addDefault("degree", 15);
+        config.addDefault("degree", 45);
         config.addDefault("depth", 30);
+        config.addDefault("brightness", 10);
         config.options().copyDefaults(true);
         saveConfig();
     }
 
     private void registerCommands() {
         Objects.requireNonNull(this.getCommand("flashlight")).setExecutor(new FlashlightCommand());
-        Objects.requireNonNull(this.getCommand("flashlightconfig")).setExecutor(new FlashlightConfigCommand());
+        Objects.requireNonNull(this.getCommand("config")).setExecutor(new FlashlightConfigCommand());
     }
 
     private void registerTasks() {
-        new UpdateLightTask().runTaskTimerAsynchronously(this, 1, 1);
+        new UpdateLightTask().runTaskTimer(this, 1, 1);
     }
 }
 

@@ -9,7 +9,7 @@ commands:
     permission: Flashlight.use
     aliases:
       - fl
-  flashlightconfig:
+  config:
     description: Allows you to modify and view flashlight configuration.
     usage: "Usage: /<command> <config_path> [config_value]"
     permission: Flashlight.config
