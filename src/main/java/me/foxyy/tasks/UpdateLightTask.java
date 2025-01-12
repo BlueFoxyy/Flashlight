@@ -4,7 +4,6 @@ import me.foxyy.Flashlight;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
-import org.bukkit.block.BlockType;
 import org.bukkit.block.data.Levelled;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
@@ -14,54 +13,58 @@ import java.util.*;
 
 public class UpdateLightTask extends BukkitRunnable {
 
-    static Set<Location> lightBlocks;
+    static Set<Location> lightBlocks = new HashSet<>();
 
-    private Vector rotateAround(Vector v, Vector k, double theta) {
-        return v.multiply(Math.cos(theta))
-                .add(k.crossProduct(v).multiply(Math.sin(theta)))
-                .add(k.multiply(k.dot(v)).multiply(1 - Math.cos(theta)));
-    }
-
-    private Vector getPerpendicularVector(Vector v) {
+    private static Vector getPerpendicularVector(Vector v) {
         Vector ret = new Vector(v.getZ(), v.getZ(), -v.getX()-v.getY());
         if (ret.isZero())
-            return new Vector(-v.getY()-v.getZ(), v.getX(), v.getX());
-        return ret;
+            return new Vector(-v.getY()-v.getZ(), v.getX(), v.getX()).normalize();
+        return ret.normalize();
+    }
+
+    public static void clear() {
+        for (Location location : lightBlocks) {
+            if (location.getBlock().getType() == Material.LIGHT) {
+                location.getBlock().setType(Material.AIR, false);
+            }
+        }
     }
 
     public void run() {
         final int maxLightLevel = 15;
 
-        final int phiSamples = 36;
+        final double configDegree = Math.ceil(Flashlight.getInstance().getMainConfig().getDouble("degree"));
+        final int configDepth = Flashlight.getInstance().getMainConfig().getInt("depth");
+        final int configBrightness = Flashlight.getInstance().getMainConfig().getInt("brightness");
+
+        final int phiSamples = 10;
         final int thetaSamples = 36;
 
-        final double targetPhi = Flashlight.getInstance().getMainConfig().getDouble("degree") * Math.PI / 180;
-        final double targetDepth = Flashlight.getInstance().getMainConfig().getDouble("depth");
+        final double targetPhi = configDegree * Math.PI / 180;
+        final int targetDepth = configDepth;
 
         Map<Location, Integer> currentLightBlocks = new HashMap<>();
 
         for (Player player : Flashlight.getInstance().getServer().getOnlinePlayers()) {
-            final Vector lookVector = player.getEyeLocation().getDirection().normalize();
-            final Vector perpendicularLookVector = getPerpendicularVector(lookVector);
+            if (!Flashlight.getInstance().flashlightState.get(player))
+                continue;
+
+            final Vector u = player.getLocation().getDirection().normalize(); // player look vector
+            final Vector v = getPerpendicularVector(u); // arbitrary perpendicular vector to player look vector
+            final Vector w = u.clone().crossProduct(v).normalize();
             for (int thetaStep = 0; thetaStep < thetaSamples; thetaStep++) {
-                final double theta = thetaStep * (2 * Math.PI / thetaSamples);
+                final double theta = 2 * Math.PI * thetaStep / thetaSamples;
                 for (int phiStep = 0; phiStep < phiSamples; phiStep++) {
-                    final double phi = phiStep * targetPhi / phiSamples;
-                    for (int depth = 0; depth < targetDepth; depth++) {
-                        final int lightLevel = (int)(maxLightLevel * depth / targetDepth + 0.5);
-                        final Vector ray = rotateAround(
-                                rotateAround(lookVector, perpendicularLookVector, phi),
-                                lookVector,
-                                theta
-                        );
-                        final Location location = player.getLocation().add(ray);
-                        if (player.getWorld().getBlockAt(location).getType() == Material.AIR) {
-                            if (currentLightBlocks.get(location) != null) {
-                                currentLightBlocks.compute(location, (k, currentLightLevel) -> Math.min(currentLightLevel + lightLevel, 15));
-                            } else {
-                                currentLightBlocks.put(location, lightLevel);
-                            }
-                        } else {
+                    final double phi = targetPhi * phiStep / phiSamples;
+                    for (int depth = 0; depth <= targetDepth; depth++) {
+                        final Vector ray = w.clone().multiply(Math.sin(phi) * Math.cos(theta))
+                                .add(v.clone().multiply(Math.sin(phi) * Math.sin(theta)))
+                                .add(u.clone().multiply(Math.cos(phi))).normalize().multiply(depth);
+                        final Location location = player.getEyeLocation().clone().add(ray);
+                        if (location.getBlock().getType() == Material.LIGHT
+                        ||  location.getBlock().getType() == Material.AIR) {
+                            currentLightBlocks.put(location, configBrightness);
+                        } else if (!location.getBlock().getType().isTransparent()) {
                             break;
                         }
                     }
@@ -69,11 +72,10 @@ public class UpdateLightTask extends BukkitRunnable {
             }
         }
 
+        lightBlocks.removeAll(currentLightBlocks.keySet());
         for (Location location : lightBlocks) {
-            if (currentLightBlocks.get(location) == null) {
-                if (Objects.requireNonNull(location.getWorld()).getBlockAt(location).getType() == Material.LIGHT) {
-                    location.getWorld().setType(location, Material.AIR);
-                }
+            if (location.getBlock().getType() == Material.LIGHT) {
+                location.getBlock().setType(Material.AIR, false);
             }
         }
 
@@ -81,10 +83,10 @@ public class UpdateLightTask extends BukkitRunnable {
             Location location = pair.getKey();
             Block block = location.getBlock();
             int lightLevel = pair.getValue();
-            block.setType(Material.LIGHT);
+            block.setType(Material.LIGHT, false);
             final Levelled level = (Levelled) block.getBlockData();
             level.setLevel(lightLevel);
-            block.setBlockData(level, true);
+            block.setBlockData(level, false);
         }
 
         lightBlocks = currentLightBlocks.keySet();
