@@ -41,7 +41,7 @@ public class FlashlightConfigCommand implements CommandExecutor, TabCompleter {
             return false;
         if (args.length == 1) {
             // query
-            ChatUtils.sendPrefixMessage((Player)sender,
+            ChatUtils.sendPrefixMessage(sender,
                     args[0] + " is set to " + ChatColor.translateAlternateColorCodes('&', "&e")
                     + Objects.requireNonNull(Flashlight.getInstance().getMainConfig().get(args[0]))
                     + ChatColor.translateAlternateColorCodes('&', "&r")

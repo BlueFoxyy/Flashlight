@@ -15,12 +15,16 @@ public class FlashlightCommand implements CommandExecutor {
                              @NonNull Command c,
                              @NonNull String label,
                              @NonNull String @NonNull [] args) {
-        if (!Flashlight.getInstance().flashlightState.get(sender)) {
-            ChatUtils.sendPrefixMessage((Player)sender, ChatColor.translateAlternateColorCodes('&', "Flashlight is now &aon&r!"));
-        } else {
-            ChatUtils.sendPrefixMessage((Player)sender, ChatColor.translateAlternateColorCodes('&', "Flashlight is now &coff&r!"));
+        if (!(sender instanceof Player)) {
+            ChatUtils.error(sender, "This command can only be used by players!");
+            return false;
         }
-        Flashlight.getInstance().flashlightState.compute(sender, (Player player, Boolean state) -> Boolean.FALSE.equals(state));
+        if (!Flashlight.getInstance().flashlightState.get((Player)sender)) {
+            ChatUtils.sendPrefixMessage(sender, ChatColor.translateAlternateColorCodes('&', "Flashlight is now &aon&r!"));
+        } else {
+            ChatUtils.sendPrefixMessage(sender, ChatColor.translateAlternateColorCodes('&', "Flashlight is now &coff&r!"));
+        }
+        Flashlight.getInstance().flashlightState.compute((Player)sender, (Player player, Boolean state) -> Boolean.FALSE.equals(state));
         return true;
     }
 }
