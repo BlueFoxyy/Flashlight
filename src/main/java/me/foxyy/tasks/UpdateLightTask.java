@@ -57,7 +57,7 @@ public class UpdateLightTask extends BukkitRunnable {
 
             List<Block> blocks = player.getLastTwoTargetBlocks(transparentMaterialSet, targetDepth);
             BlockLoc lookingBlockLoc = new BlockLoc(blocks.getFirst().getLocation());
-            Flashlight.getInstance().getLogger().info(lookingBlockLoc.getBlock().toString());
+//            Flashlight.getInstance().getLogger().info(lookingBlockLoc.getBlock().toString());
 
             final Vector u = player.getLocation().getDirection().normalize(); // player look vector
             final Vector v = getPerpendicularVector(u); // arbitrary perpendicular vector to player look vector
