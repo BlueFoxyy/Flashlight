@@ -66,7 +66,7 @@ public class UpdateLightTask extends BukkitRunnable {
                 final double theta = 2 * Math.PI * thetaStep / thetaSamples;
                 for (int phiStep = 0; phiStep < phiSamples; phiStep++) {
                     final double phi = (maxPhi - minPhi) * phiStep / phiSamples + minPhi;
-                    for (int depth = 2; depth <= targetDepth; depth++) {
+                    for (int depth = 0; depth <= targetDepth; depth++) {
                         final Vector ray = w.clone().multiply(Math.sin(phi) * Math.cos(theta))
                                 .add(v.clone().multiply(Math.sin(phi) * Math.sin(theta)))
                                 .add(u.clone().multiply(Math.cos(phi))).normalize().multiply(depth);
