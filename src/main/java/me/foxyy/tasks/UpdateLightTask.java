@@ -44,6 +44,7 @@ public class UpdateLightTask extends BukkitRunnable {
         final int targetDepth = configDepth;
 
         Map<Location, Integer> currentLightBlocks = new HashMap<>();
+        Set<Location> lookingLocations = new HashSet<>();
 
         for (Player player : Flashlight.getInstance().getServer().getOnlinePlayers()) {
             if (!Flashlight.getInstance().flashlightState.get(player))
@@ -70,8 +71,18 @@ public class UpdateLightTask extends BukkitRunnable {
                     }
                 }
             }
+
+            // bugfix: cant lit fire where a light block is present
+            List<Block> lastTwoTargetBlocks = player.getLastTwoTargetBlocks(null, targetDepth);
+            if (lastTwoTargetBlocks.size() == 2 && lastTwoTargetBlocks.get(1).getType().isOccluding()) {
+                Block adjacentBlock = lastTwoTargetBlocks.getFirst();
+                lookingLocations.add(adjacentBlock.getLocation());
+            }
         }
 
+        for (Location location : lookingLocations) {
+            currentLightBlocks.remove(location);
+        }
         lightBlocks.removeAll(currentLightBlocks.keySet());
         for (Location location : lightBlocks) {
             if (location.getBlock().getType() == Material.LIGHT) {
