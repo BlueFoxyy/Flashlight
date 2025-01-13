@@ -43,7 +43,7 @@ public class UpdateLightTask extends BukkitRunnable {
 
 
         final double maxPhi = configDegree * Math.PI / 180;
-        final double minPhi = 10 * Math.PI / 180;
+        final double minPhi = 5 * Math.PI / 180;
         final int targetDepth = configDepth;
 
         Map<BlockLoc, Integer> currentLightBlocks = new HashMap<>();

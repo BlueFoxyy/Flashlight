@@ -73,8 +73,8 @@ public class FlashlightConfigCommand implements CommandExecutor, TabCompleter {
                     ChatUtils.error(sender, "Input value must be an integer.");
                     return false;
                 }
-                if (degree < 0 || degree > 90) {
-                    ChatUtils.error(sender, "Input value must be between 0 and 90.");
+                if (degree < 10 || degree > 90) {
+                    ChatUtils.error(sender, "Input value must be between 10 and 90.");
                     return false;
                 }
                 Flashlight.getInstance().getMainConfig().set(args[0], degree);
