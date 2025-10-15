@@ -32,8 +32,6 @@ public class UpdateLightTask extends BukkitRunnable {
     }
 
     public void run() {
-        final int maxLightLevel = 15;
-
         final double configDegree = Math.ceil(Flashlight.getInstance().getMainConfig().getDouble("degree"));
         final int configDepth = Flashlight.getInstance().getMainConfig().getInt("depth");
         final int configBrightness = Flashlight.getInstance().getMainConfig().getInt("brightness");
@@ -44,7 +42,6 @@ public class UpdateLightTask extends BukkitRunnable {
 
         final double maxPhi = configDegree * Math.PI / 180;
         final double minPhi = 5 * Math.PI / 180;
-        final int targetDepth = configDepth;
 
         Map<BlockLoc, Integer> currentLightBlocks = new HashMap<>();
         Set<Material> transparentMaterialSet = new HashSet<>();
@@ -55,7 +52,7 @@ public class UpdateLightTask extends BukkitRunnable {
             if (!Flashlight.getInstance().flashlightState.get(player))
                 continue;
 
-            List<Block> blocks = player.getLastTwoTargetBlocks(transparentMaterialSet, targetDepth);
+            List<Block> blocks = player.getLastTwoTargetBlocks(transparentMaterialSet, configDepth);
             BlockLoc lookingBlockLoc = new BlockLoc(blocks.getFirst().getLocation());
 //            Flashlight.getInstance().getLogger().info(lookingBlockLoc.getBlock().toString());
 
@@ -66,7 +63,7 @@ public class UpdateLightTask extends BukkitRunnable {
                 final double theta = 2 * Math.PI * thetaStep / thetaSamples;
                 for (int phiStep = 0; phiStep < phiSamples; phiStep++) {
                     final double phi = (maxPhi - minPhi) * phiStep / phiSamples + minPhi;
-                    for (int depth = 0; depth <= targetDepth; depth++) {
+                    for (int depth = 0; depth <= configDepth; depth++) {
                         final Vector ray = w.clone().multiply(Math.sin(phi) * Math.cos(theta))
                                 .add(v.clone().multiply(Math.sin(phi) * Math.sin(theta)))
                                 .add(u.clone().multiply(Math.cos(phi))).normalize().multiply(depth);
@@ -76,7 +73,7 @@ public class UpdateLightTask extends BukkitRunnable {
                             BlockLoc blockLoc = new BlockLoc(location);
                             if (!blockLoc.equals(lookingBlockLoc))
                                 currentLightBlocks.put(blockLoc, configBrightness);
-                        } else if (!location.getBlock().getType().isTransparent()) {
+                        } else if (location.getBlock().getType().isOccluding()) {
                             break;
                         }
                     }
@@ -90,9 +87,6 @@ public class UpdateLightTask extends BukkitRunnable {
                 blockLoc.getBlock().setType(Material.AIR, false);
             }
         }
-
-//        Flashlight.getInstance().getLogger().info("Current: " + currentLightBlocks.toString());
-//        Flashlight.getInstance().getLogger().info("Remove:  " + lightBlocks.toString());
 
         for (HashMap.Entry<BlockLoc, Integer> pair : currentLightBlocks.entrySet()) {
             Block block = pair.getKey().getBlock();
