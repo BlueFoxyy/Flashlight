@@ -14,7 +14,15 @@ import java.util.*;
 
 public class UpdateLightTask extends BukkitRunnable {
 
-    static Set<BlockLoc> lightBlocks = new HashSet<>();
+    static Set<Material> transparentMaterialSet = new HashSet<>();
+    static {
+        transparentMaterialSet.add(Material.LIGHT);
+        transparentMaterialSet.add(Material.AIR);
+        transparentMaterialSet.add(Material.CAVE_AIR);
+        transparentMaterialSet.add(Material.VOID_AIR);
+    }
+
+    static Map<BlockLoc, Material> lightBlocks = new HashMap<>();
 
     private static Vector getPerpendicularVector(Vector v) {
         Vector ret = new Vector(v.getZ(), v.getZ(), -v.getX()-v.getY());
@@ -23,10 +31,18 @@ public class UpdateLightTask extends BukkitRunnable {
         return ret.normalize();
     }
 
+    private static boolean isOccluding(Material material) {
+        return material.isOccluding() && !material.equals(Material.CAVE_AIR) && !material.equals(Material.VOID_AIR);
+    }
+
+    private static boolean isLightable(Material material) {
+        return transparentMaterialSet.contains(material);
+    }
+
     public static void clear() {
-        for (BlockLoc blockLoc : lightBlocks) {
+        for (BlockLoc blockLoc : lightBlocks.keySet()) {
             if (blockLoc.getBlock().getType() == Material.LIGHT) {
-                blockLoc.getBlock().setType(Material.AIR, false);
+                blockLoc.getBlock().setType(lightBlocks.get(blockLoc), false);
             }
         }
     }
@@ -36,17 +52,13 @@ public class UpdateLightTask extends BukkitRunnable {
         final int configDepth = Flashlight.getInstance().getMainConfig().getInt("depth");
         final int configBrightness = Flashlight.getInstance().getMainConfig().getInt("brightness");
 
-        final int phiSamples = 10;
+        final int phiSamples = 40;
         final int thetaSamples = 36;
-
 
         final double maxPhi = configDegree * Math.PI / 180;
         final double minPhi = 5 * Math.PI / 180;
 
-        Map<BlockLoc, Integer> currentLightBlocks = new HashMap<>();
-        Set<Material> transparentMaterialSet = new HashSet<>();
-        transparentMaterialSet.add(Material.LIGHT);
-        transparentMaterialSet.add(Material.AIR);
+        Map<BlockLoc, Integer> currentLightBlocks = new HashMap<>(); // BlockLoc -> brightness map
 
         for (Player player : Flashlight.getInstance().getServer().getOnlinePlayers()) {
             if (!Flashlight.getInstance().flashlightState.get(player))
@@ -68,12 +80,11 @@ public class UpdateLightTask extends BukkitRunnable {
                                 .add(v.clone().multiply(Math.sin(phi) * Math.sin(theta)))
                                 .add(u.clone().multiply(Math.cos(phi))).normalize().multiply(depth);
                         final Location location = player.getEyeLocation().clone().add(ray);
-                        if (location.getBlock().getType() == Material.LIGHT
-                        ||  location.getBlock().getType() == Material.AIR) {
+                        if (isLightable(location.getBlock().getType())) {
                             BlockLoc blockLoc = new BlockLoc(location);
                             if (!blockLoc.equals(lookingBlockLoc))
                                 currentLightBlocks.put(blockLoc, configBrightness);
-                        } else if (location.getBlock().getType().isOccluding()) {
+                        } else if (isOccluding(location.getBlock().getType())) {
                             break;
                         }
                     }
@@ -81,10 +92,21 @@ public class UpdateLightTask extends BukkitRunnable {
             }
         }
 
-        lightBlocks.removeAll(currentLightBlocks.keySet());
-        for (BlockLoc blockLoc : lightBlocks) {
+        for (BlockLoc blockLoc : currentLightBlocks.keySet()) {
+            if (!currentLightBlocks.containsKey(blockLoc)) {
+                lightBlocks.remove(blockLoc);
+            }
+        }
+
+        for (BlockLoc blockLoc : lightBlocks.keySet()) {
             if (blockLoc.getBlock().getType() == Material.LIGHT) {
-                blockLoc.getBlock().setType(Material.AIR, false);
+                blockLoc.getBlock().setType(lightBlocks.get(blockLoc), false);
+            }
+        }
+
+        for (BlockLoc blockLoc : currentLightBlocks.keySet()) {
+            if (lightBlocks.get(blockLoc) == null) {
+                lightBlocks.put(blockLoc, blockLoc.getBlock().getType());
             }
         }
 
@@ -96,7 +118,5 @@ public class UpdateLightTask extends BukkitRunnable {
             level.setLevel(lightLevel);
             block.setBlockData(level, false);
         }
-
-        lightBlocks = currentLightBlocks.keySet();
     }
 }
