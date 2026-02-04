@@ -30,28 +30,35 @@ public class FlashlightConfigCommand implements CommandExecutor, TabCompleter {
                              @NonNull String label,
                              @NonNull String @NonNull [] args) {
 
-        if (args.length == 0) {
+        if (args.length == 0 || args.length > 3) {
             return false;
         }
 
-        args[0] = args[0].toLowerCase();
+        String target = args[0];
+        String configPath = args[1].toLowerCase();
 
-        if (!parameters.contains(args[0]))
+        if (!parameters.contains(configPath)) {
             return false;
-        if (args.length == 1) {
+        }
+
+        String configValue;
+        if (args.length == 3) {
+            configValue = args[2];
+        } else {
             // query
             ChatUtils.sendPrefixMessage(sender,
-                    args[0] + " is set to " + ChatColor.translateAlternateColorCodes('&', "&e")
-                    + Objects.requireNonNull(Flashlight.getInstance().getMainConfig().get(args[0]))
-                    + ChatColor.translateAlternateColorCodes('&', "&r")
+                    configPath + " is set to " + ChatColor.translateAlternateColorCodes('&', "&e")
+                            + Objects.requireNonNull(Flashlight.getInstance().getMainConfig().get(configPath))
+                            + ChatColor.translateAlternateColorCodes('&', "&r")
             );
             return true;
         }
-        switch (args[0]) {
+
+        switch (configPath) {
             case "depth" -> {
                 int depth;
                 try {
-                    depth = Integer.parseInt(args[1]);
+                    depth = Integer.parseInt(configValue);
                 } catch (NumberFormatException e) {
                     ChatUtils.error(sender, "Input value must be an integer.");
                     return false;
@@ -60,14 +67,14 @@ public class FlashlightConfigCommand implements CommandExecutor, TabCompleter {
                     ChatUtils.error(sender, "Input value must be between 1 and 40.");
                     return false;
                 }
-                Flashlight.getInstance().getMainConfig().set(args[0], depth);
-                ChatUtils.success(sender, args[0] + " has been set to " + depth + "!");
+                Flashlight.getInstance().getMainConfig().set(configPath, depth);
+                ChatUtils.success(sender, configPath + " has been set to " + depth + "!");
             }
             case "degree" -> {
                 int degree;
                 try {
-                    Flashlight.getInstance().getLogger().info(args[1]);
-                    degree = Integer.parseInt(args[1]);
+                    Flashlight.getInstance().getLogger().info(configValue);
+                    degree = Integer.parseInt(configValue);
                 } catch (NumberFormatException e) {
                     ChatUtils.error(sender, "Input value must be an integer.");
                     return false;
@@ -76,13 +83,13 @@ public class FlashlightConfigCommand implements CommandExecutor, TabCompleter {
                     ChatUtils.error(sender, "Input value must be between 10 and 90.");
                     return false;
                 }
-                Flashlight.getInstance().getMainConfig().set(args[0], degree);
-                ChatUtils.success(sender, args[0] + " has been set to " + degree + "!");
+                Flashlight.getInstance().getMainConfig().set(configPath, degree);
+                ChatUtils.success(sender, configPath + " has been set to " + degree + "!");
             }
             case "brightness" -> {
                 int brightness;
                 try {
-                    brightness = Integer.parseInt(args[1]);
+                    brightness = Integer.parseInt(configValue);
                 } catch (NumberFormatException e) {
                     ChatUtils.error(sender, "Input value must be an integer.");
                     return false;
@@ -91,8 +98,8 @@ public class FlashlightConfigCommand implements CommandExecutor, TabCompleter {
                     ChatUtils.error(sender, "Input value must be between 0 and 15.");
                     return false;
                 }
-                Flashlight.getInstance().getMainConfig().set(args[0], brightness);
-                ChatUtils.success(sender, args[0] + " has been set to " + brightness + "!");
+                Flashlight.getInstance().getMainConfig().set(configPath, brightness);
+                ChatUtils.success(sender, configPath + " has been set to " + brightness + "!");
             }
         }
         Flashlight.getInstance().saveConfig();
