@@ -4,8 +4,8 @@ version: 1.2
 api-version: 1.21
 commands:
   flashlight:
-    description: Toggles flashlight.
-    usage: "Usage: /<command>"
+    description: Enable/Disable flashlight, toggle if no action is specified.
+    usage: "Usage: /<command> [<on | off | get | toggle> [<target>]]"
     permission: Flashlight.use
     aliases: [fl]
   config:
