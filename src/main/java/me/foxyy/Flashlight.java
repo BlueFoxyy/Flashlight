@@ -15,6 +15,14 @@ public class Flashlight extends JavaPlugin {
     private static Flashlight instance;
 
     FileConfiguration config = getConfig();
+    private final static Map<String, Integer> defaultConfig;
+    static {
+        defaultConfig = new HashMap<>();
+        defaultConfig.put("brightness", 10);
+        defaultConfig.put("degree", 45);
+        defaultConfig.put("depth", 30);
+        defaultConfig.put("toggle_state", 0);
+    }
 
     public static Flashlight getInstance() {
         return instance;
