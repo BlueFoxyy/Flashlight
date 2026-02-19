@@ -7,12 +7,10 @@ import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabCompleter;
+import org.bukkit.entity.Player;
 import org.checkerframework.checker.nullness.qual.NonNull;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 
 public class FlashlightConfigCommand implements CommandExecutor, TabCompleter {
 
@@ -30,14 +28,21 @@ public class FlashlightConfigCommand implements CommandExecutor, TabCompleter {
                              @NonNull String label,
                              @NonNull String @NonNull [] args) {
 
-        if (args.length == 0 || args.length > 3) {
+        if (args.length <= 1 || args.length > 3) {
             return false;
         }
 
         String target = args[0];
-        String configPath = args[1].toLowerCase();
+        String configField = args[1].toLowerCase();
 
-        if (!parameters.contains(configPath)) {
+        Player player = Flashlight.getInstance().getServer().getPlayer(target);
+        if (player == null) {
+            ChatUtils.error(sender, "The specified player is not online.");
+            return true;
+        }
+        UUID playerUUID = player.getUniqueId();
+
+        if (!parameters.contains(configField)) {
             return false;
         }
 
@@ -47,28 +52,28 @@ public class FlashlightConfigCommand implements CommandExecutor, TabCompleter {
         } else {
             // query
             ChatUtils.sendPrefixMessage(sender,
-                    configPath + " is set to " + ChatColor.translateAlternateColorCodes('&', "&e")
-                            + Objects.requireNonNull(Flashlight.getInstance().getMainConfig().get(configPath))
+                    configField + " is set to " + ChatColor.translateAlternateColorCodes('&', "&e")
+                            + Objects.requireNonNull(Flashlight.getInstance().getPlayerConfig(playerUUID).get(configField))
                             + ChatColor.translateAlternateColorCodes('&', "&r")
             );
             return true;
         }
 
-        switch (configPath) {
+        switch (configField) {
             case "depth" -> {
                 int depth;
                 try {
                     depth = Integer.parseInt(configValue);
                 } catch (NumberFormatException e) {
                     ChatUtils.error(sender, "Input value must be an integer.");
-                    return false;
+                    return true;
                 }
                 if (depth < 1 || depth > 40) {
                     ChatUtils.error(sender, "Input value must be between 1 and 40.");
-                    return false;
+                    return true;
                 }
-                Flashlight.getInstance().getMainConfig().set(configPath, depth);
-                ChatUtils.success(sender, configPath + " has been set to " + depth + "!");
+                Flashlight.getInstance().getPlayerConfig(playerUUID).set(configField, depth);
+                ChatUtils.success(sender, configField + " has been set to " + depth + "!");
             }
             case "degree" -> {
                 int degree;
@@ -77,14 +82,14 @@ public class FlashlightConfigCommand implements CommandExecutor, TabCompleter {
                     degree = Integer.parseInt(configValue);
                 } catch (NumberFormatException e) {
                     ChatUtils.error(sender, "Input value must be an integer.");
-                    return false;
+                    return true;
                 }
                 if (degree < 10 || degree > 90) {
                     ChatUtils.error(sender, "Input value must be between 10 and 90.");
-                    return false;
+                    return true;
                 }
-                Flashlight.getInstance().getMainConfig().set(configPath, degree);
-                ChatUtils.success(sender, configPath + " has been set to " + degree + "!");
+                Flashlight.getInstance().getPlayerConfig(playerUUID).set(configField, degree);
+                ChatUtils.success(sender, configField + " has been set to " + degree + "!");
             }
             case "brightness" -> {
                 int brightness;
@@ -92,14 +97,14 @@ public class FlashlightConfigCommand implements CommandExecutor, TabCompleter {
                     brightness = Integer.parseInt(configValue);
                 } catch (NumberFormatException e) {
                     ChatUtils.error(sender, "Input value must be an integer.");
-                    return false;
+                    return true;
                 }
                 if (brightness < 0 || brightness > 15) {
                     ChatUtils.error(sender, "Input value must be between 0 and 15.");
-                    return false;
+                    return true;
                 }
-                Flashlight.getInstance().getMainConfig().set(configPath, brightness);
-                ChatUtils.success(sender, configPath + " has been set to " + brightness + "!");
+                Flashlight.getInstance().getPlayerConfig(playerUUID).set(configField, brightness);
+                ChatUtils.success(sender, configField + " has been set to " + brightness + "!");
             }
         }
         Flashlight.getInstance().saveConfig();
@@ -116,8 +121,10 @@ public class FlashlightConfigCommand implements CommandExecutor, TabCompleter {
         List<String> list = new ArrayList<>();
 
         if (args.length == 1) {
+            list.add("<player_name>");
+        } else if (args.length == 2) {
             list = parameters;
-        } else if (args.length == 2 && parameters.contains(args[0])) {
+        } else if (args.length == 3 && parameters.contains(args[1])) {
             list.add("[value]");
         }
         return list;

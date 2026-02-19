@@ -3,32 +3,31 @@ package me.foxyy;
 import me.foxyy.commands.*;
 import me.foxyy.events.EventListener;
 import me.foxyy.tasks.UpdateLightTask;
+import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
-import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.UUID;
 
 public class Flashlight extends JavaPlugin {
     private static Flashlight instance;
 
     FileConfiguration config = getConfig();
-    private final static Map<String, Integer> defaultConfig;
+    private final static Map<String, Object> defaultConfiguration;
     static {
-        defaultConfig = new HashMap<>();
-        defaultConfig.put("brightness", 10);
-        defaultConfig.put("degree", 45);
-        defaultConfig.put("depth", 30);
-        defaultConfig.put("toggle_state", 0);
+        defaultConfiguration = new HashMap<>();
+        defaultConfiguration.put("brightness", 10);
+        defaultConfiguration.put("degree", 45);
+        defaultConfiguration.put("depth", 30);
+        defaultConfiguration.put("toggleState", false);
     }
 
     public static Flashlight getInstance() {
         return instance;
     }
-
-    public Map<Player, Boolean> flashlightState = new HashMap<>();
 
     @Override
     public void onEnable() {
@@ -45,22 +44,22 @@ public class Flashlight extends JavaPlugin {
 
         // register tasks
         registerTasks();
-
-        // register all online users
-        for (Player player : getServer().getOnlinePlayers()) {
-            flashlightState.put(player, false);
-        }
     }
 
     @Override
     public void onDisable() {
         this.getServer().getScheduler().cancelTasks(this);
         UpdateLightTask.clear();
-        flashlightState.clear();
+        saveConfig();
     }
 
-    public FileConfiguration getMainConfig() {
-        return this.config;
+    public ConfigurationSection getPlayerConfig(UUID uuid) {
+        ConfigurationSection configurationSection = this.config.getConfigurationSection(uuid.toString());
+        if (configurationSection == null) {
+            this.config.createSection(uuid.toString(), defaultConfiguration);
+            return this.config.getConfigurationSection(uuid.toString());
+        }
+        return configurationSection;
     }
 
     private void registerCommands() {
