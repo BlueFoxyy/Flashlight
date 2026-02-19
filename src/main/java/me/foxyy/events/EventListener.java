@@ -9,11 +9,11 @@ import org.bukkit.event.player.PlayerQuitEvent;
 public class EventListener implements Listener {
     @EventHandler
     public void onPlayerJoin(PlayerJoinEvent e) {
-        Flashlight.getInstance().flashlightState.put(e.getPlayer(), false);
+        Flashlight.getInstance().getPlayerConfig(e.getPlayer().getUniqueId()).set("toggleState", false);
     }
 
     @EventHandler
     public void onPlayerQuit(PlayerQuitEvent e) {
-        Flashlight.getInstance().flashlightState.remove(e.getPlayer());
+        Flashlight.getInstance().getPlayerConfig(e.getPlayer().getUniqueId()).set("toggleState", false);
     }
 }
