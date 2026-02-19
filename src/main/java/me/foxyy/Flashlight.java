@@ -29,8 +29,8 @@ public class Flashlight extends JavaPlugin {
         // register events
         getServer().getPluginManager().registerEvents(new EventListener(), this);
 
-        // load config
-        loadConfig();
+        // save config
+        saveConfig();
 
         // register commands
         registerCommands();
@@ -53,14 +53,6 @@ public class Flashlight extends JavaPlugin {
 
     public FileConfiguration getMainConfig() {
         return this.config;
-    }
-
-    private void loadConfig() {
-        config.addDefault("degree", 45);
-        config.addDefault("depth", 30);
-        config.addDefault("brightness", 10);
-        config.options().copyDefaults(true);
-        saveConfig();
     }
 
     private void registerCommands() {
