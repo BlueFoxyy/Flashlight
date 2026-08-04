@@ -26,9 +26,9 @@ public class UpdateLightTask extends BukkitRunnable {
     static Map<BlockLoc, Material> lightBlocks = new HashMap<>();
 
     private static Vector getPerpendicularVector(Vector v) {
-        Vector ret = new Vector(v.getZ(), v.getZ(), -v.getX()-v.getY());
+        Vector ret = new Vector(v.getZ(), v.getZ(), -v.getX() - v.getY());
         if (ret.isZero())
-            return new Vector(-v.getY()-v.getZ(), v.getX(), v.getX()).normalize();
+            return new Vector(-v.getY() - v.getZ(), v.getX(), v.getX()).normalize();
         return ret.normalize();
     }
 
@@ -81,18 +81,30 @@ public class UpdateLightTask extends BukkitRunnable {
                 final double theta = 2 * Math.PI * thetaStep / thetaSamples;
                 for (int phiStep = 0; phiStep < phiSamples; phiStep++) {
                     final double phi = (maxPhi - minPhi) * phiStep / phiSamples + minPhi;
+                    BlockLoc lastLightable = null;
                     for (int depth = 0; depth <= configDepth; depth++) {
+                        boolean isShell = depth == configDepth - 1;
                         final Vector ray = w.clone().multiply(Math.sin(phi) * Math.cos(theta))
                                 .add(v.clone().multiply(Math.sin(phi) * Math.sin(theta)))
                                 .add(u.clone().multiply(Math.cos(phi))).normalize().multiply(depth);
                         final Location location = player.getEyeLocation().clone().add(ray);
+                        BlockLoc lightLoc = null;
+                        boolean blocked = false;
                         if (isTransparent(location.getBlock().getType())) {
-                            BlockLoc blockLoc = new BlockLoc(location);
-                            if (!blockLoc.equals(lookingBlockLoc))
-                                currentLightBlocks.put(blockLoc, configBrightness);
+                            lastLightable = new BlockLoc(location);
+                            if (isShell)
+                                lightLoc = lastLightable;
                         } else if (isOccluding(location.getBlock().getType())) {
-                            break;
+                            lightLoc = lastLightable;
+                            blocked = true;
+                        } else {
+                            lightLoc = lastLightable;
                         }
+                        if (lightLoc != null)
+                            if (!lightLoc.equals(lookingBlockLoc))
+                                currentLightBlocks.put(lightLoc, configBrightness);
+                        if (blocked)
+                            break;
                     }
                 }
             }
