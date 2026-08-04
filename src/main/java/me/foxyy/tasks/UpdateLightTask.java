@@ -6,6 +6,7 @@ import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.block.data.Levelled;
+import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.Vector;
@@ -35,7 +36,7 @@ public class UpdateLightTask extends BukkitRunnable {
         return material.isOccluding() && !material.equals(Material.CAVE_AIR) && !material.equals(Material.VOID_AIR);
     }
 
-    private static boolean isLightable(Material material) {
+    private static boolean isTransparent(Material material) {
         return transparentMaterialSet.contains(material);
     }
 
@@ -48,21 +49,26 @@ public class UpdateLightTask extends BukkitRunnable {
     }
 
     public void run() {
-        final double configDegree = Math.ceil(Flashlight.getInstance().getMainConfig().getDouble("degree"));
-        final int configDepth = Flashlight.getInstance().getMainConfig().getInt("depth");
-        final int configBrightness = Flashlight.getInstance().getMainConfig().getInt("brightness");
 
         final int phiSamples = 40;
         final int thetaSamples = 36;
 
-        final double maxPhi = configDegree * Math.PI / 180;
-        final double minPhi = 5 * Math.PI / 180;
-
         Map<BlockLoc, Integer> currentLightBlocks = new HashMap<>(); // BlockLoc -> brightness map
 
         for (Player player : Flashlight.getInstance().getServer().getOnlinePlayers()) {
-            if (!Flashlight.getInstance().flashlightState.get(player))
+            final ConfigurationSection playerConfig = Flashlight.getInstance().getPlayerConfig(player.getUniqueId());
+
+            boolean toggleState = playerConfig.getBoolean("toggleState");
+
+            if (!toggleState)
                 continue;
+
+            final double configDegree = Math.ceil(playerConfig.getInt("degree"));
+            final int configDepth = playerConfig.getInt("depth");
+            final int configBrightness = playerConfig.getInt("brightness");
+
+            final double maxPhi = configDegree * Math.PI / 180;
+            final double minPhi = 5 * Math.PI / 180;
 
             List<Block> blocks = player.getLastTwoTargetBlocks(transparentMaterialSet, configDepth);
             BlockLoc lookingBlockLoc = new BlockLoc(blocks.getFirst().getLocation());
@@ -84,7 +90,7 @@ public class UpdateLightTask extends BukkitRunnable {
                         final Location location = player.getEyeLocation().clone().add(ray);
                         BlockLoc lightLoc = null;
                         boolean blocked = false;
-                        if (isLightable(location.getBlock().getType())) {
+                        if (isTransparent(location.getBlock().getType())) {
                             lastLightable = new BlockLoc(location);
                             if (isShell)
                                 lightLoc = lastLightable;

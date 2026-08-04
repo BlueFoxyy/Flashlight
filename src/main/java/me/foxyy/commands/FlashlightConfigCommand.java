@@ -7,12 +7,10 @@ import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabCompleter;
-import org.checkerframework.checker.nullness.qual.NonNull;
+import org.bukkit.entity.Player;
+import org.jspecify.annotations.NonNull;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 
 public class FlashlightConfigCommand implements CommandExecutor, TabCompleter {
 
@@ -30,69 +28,83 @@ public class FlashlightConfigCommand implements CommandExecutor, TabCompleter {
                              @NonNull String label,
                              @NonNull String @NonNull [] args) {
 
-        if (args.length == 0) {
+        if (args.length <= 1 || args.length > 3) {
             return false;
         }
 
-        args[0] = args[0].toLowerCase();
+        String target = args[0];
+        String configField = args[1].toLowerCase();
 
-        if (!parameters.contains(args[0]))
+        Player player = Flashlight.getInstance().getServer().getPlayer(target);
+        if (player == null) {
+            ChatUtils.error(sender, "The specified player is not online.");
+            return true;
+        }
+        UUID playerUUID = player.getUniqueId();
+
+        if (!parameters.contains(configField)) {
             return false;
-        if (args.length == 1) {
+        }
+
+        String configValue;
+        if (args.length == 3) {
+            configValue = args[2];
+        } else {
             // query
             ChatUtils.sendPrefixMessage(sender,
-                    args[0] + " is set to " + ChatColor.translateAlternateColorCodes('&', "&e")
-                    + Objects.requireNonNull(Flashlight.getInstance().getMainConfig().get(args[0]))
-                    + ChatColor.translateAlternateColorCodes('&', "&r")
+                    configField + " is set to " + ChatColor.translateAlternateColorCodes('&', "&e")
+                            + Objects.requireNonNull(Flashlight.getInstance().getPlayerConfig(playerUUID).get(configField))
+                            + ChatColor.translateAlternateColorCodes('&', "&r")
             );
             return true;
         }
-        switch (args[0]) {
+
+        switch (configField) {
             case "depth" -> {
                 int depth;
                 try {
-                    depth = Integer.parseInt(args[1]);
+                    depth = Integer.parseInt(configValue);
                 } catch (NumberFormatException e) {
                     ChatUtils.error(sender, "Input value must be an integer.");
-                    return false;
+                    return true;
                 }
                 if (depth < 1 || depth > 40) {
                     ChatUtils.error(sender, "Input value must be between 1 and 40.");
-                    return false;
+                    return true;
                 }
-                Flashlight.getInstance().getMainConfig().set(args[0], depth);
-                ChatUtils.success(sender, args[0] + " has been set to " + depth + "!");
+                Flashlight.getInstance().getPlayerConfig(playerUUID).set(configField, depth);
+                ChatUtils.success(sender, configField + " has been set to " + depth + "!");
             }
             case "degree" -> {
                 int degree;
                 try {
-                    Flashlight.getInstance().getLogger().info(args[1]);
-                    degree = Integer.parseInt(args[1]);
+                    Flashlight.getInstance().getLogger().info(configValue);
+                    degree = Integer.parseInt(configValue);
                 } catch (NumberFormatException e) {
                     ChatUtils.error(sender, "Input value must be an integer.");
-                    return false;
+                    return true;
                 }
                 if (degree < 10 || degree > 90) {
                     ChatUtils.error(sender, "Input value must be between 10 and 90.");
-                    return false;
+                    return true;
                 }
-                Flashlight.getInstance().getMainConfig().set(args[0], degree);
-                ChatUtils.success(sender, args[0] + " has been set to " + degree + "!");
+                Flashlight.getInstance().getPlayerConfig(playerUUID).set(configField, degree);
+                ChatUtils.success(sender, configField + " has been set to " + degree + "!");
             }
             case "brightness" -> {
                 int brightness;
                 try {
-                    brightness = Integer.parseInt(args[1]);
+                    brightness = Integer.parseInt(configValue);
                 } catch (NumberFormatException e) {
                     ChatUtils.error(sender, "Input value must be an integer.");
-                    return false;
+                    return true;
                 }
                 if (brightness < 0 || brightness > 15) {
                     ChatUtils.error(sender, "Input value must be between 0 and 15.");
-                    return false;
+                    return true;
                 }
-                Flashlight.getInstance().getMainConfig().set(args[0], brightness);
-                ChatUtils.success(sender, args[0] + " has been set to " + brightness + "!");
+                Flashlight.getInstance().getPlayerConfig(playerUUID).set(configField, brightness);
+                ChatUtils.success(sender, configField + " has been set to " + brightness + "!");
             }
         }
         Flashlight.getInstance().saveConfig();
@@ -109,8 +121,10 @@ public class FlashlightConfigCommand implements CommandExecutor, TabCompleter {
         List<String> list = new ArrayList<>();
 
         if (args.length == 1) {
+            list.add("<player_name>");
+        } else if (args.length == 2) {
             list = parameters;
-        } else if (args.length == 2 && parameters.contains(args[0])) {
+        } else if (args.length == 3 && parameters.contains(args[1])) {
             list.add("[value]");
         }
         return list;
