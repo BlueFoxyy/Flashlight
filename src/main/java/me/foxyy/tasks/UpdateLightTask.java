@@ -63,7 +63,7 @@ public class UpdateLightTask extends BukkitRunnable {
             if (!toggleState)
                 continue;
 
-            final double configDegree = Math.ceil(playerConfig.getInt("degree"));
+            final double configDegree = playerConfig.getInt("degree");
             final int configDepth = playerConfig.getInt("depth");
             final int configBrightness = playerConfig.getInt("brightness");
 
@@ -110,17 +110,12 @@ public class UpdateLightTask extends BukkitRunnable {
             }
         }
 
-        for (BlockLoc blockLoc : currentLightBlocks.keySet()) {
-            if (!currentLightBlocks.containsKey(blockLoc)) {
-                lightBlocks.remove(blockLoc);
-            }
-        }
-
         for (BlockLoc blockLoc : lightBlocks.keySet()) {
-            if (blockLoc.getBlock().getType() == Material.LIGHT) {
+            if (!currentLightBlocks.containsKey(blockLoc)) {
                 blockLoc.getBlock().setType(lightBlocks.get(blockLoc), false);
             }
         }
+        lightBlocks.keySet().retainAll(currentLightBlocks.keySet());
 
         for (BlockLoc blockLoc : currentLightBlocks.keySet()) {
             if (lightBlocks.get(blockLoc) == null) {
